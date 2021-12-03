@@ -1,0 +1,62 @@
+import geopandas as gpd
+import fiona
+patrolzones = gpd.read_file(r"C:\Users\helpa\PycharmProjects\policefiles\Police patrol zones.shp")
+patrolzones
+      INCIDENTS	PRIORITY	NAME	POPULATION	SHAPE_Leng	SHAPE_Area	geometry
+      0	0	None	North Central	6477	8777.033636	3.880494e+06	POLYGON ((690464.047 5167124.472, 690468.043 5...
+      1	0	None	Northeast	5601	7440.428177	3.293690e+06	POLYGON ((691594.121 5164834.759, 690795.758 5...
+      2	0	None	Downtown	2833	5013.924984	1.432936e+06	POLYGON ((690779.654 5163584.137, 690384.516 5...
+      3	0	None	Eastside	7790	9206.485855	4.038758e+06	POLYGON ((693865.461 5162964.666, 693072.977 5...
+      4	0	None	Southeast	4998	10966.221591	6.668385e+06	POLYGON ((691359.668 5162227.932, 691275.741 5...
+      5	0	None	South Central	9527	11373.304385	7.716063e+06	POLYGON ((691030.488 5162897.270, 691039.946 5...
+      6	0	None	Central	7902	9539.703811	3.663411e+06	POLYGON ((690779.654 5163584.137, 691030.488 5...
+      7	0	None	Southwest	10224	11495.243750	6.681488e+06	POLYGON ((688374.476 5162840.310, 688410.300 5...
+      8	0	None	Northwest	12118	15289.916918	1.102094e+07	POLYGON ((688889.416 5166528.990, 688977.340 5...
+graffitiIncid = gpd.read_file(r"C:\Users\helpa\PycharmProjects\policefiles\Graffiti incidents.shp")
+graffitiIncid
+      COMMENTS	geometry
+      0	None	POINT (690453.853 5166304.333)
+      1	None	POINT (690402.500 5166098.921)
+      2	Back wall of commercial business	POINT (690373.156 5165959.534)
+      3	None	POINT (690820.660 5165842.156)
+      4	None	POINT (690872.013 5166117.261)
+      ...	...	...
+      131	None	POINT (689559.028 5165464.781)
+      132	None	POINT (689633.983 5160802.392)
+      133	None	POINT (690244.651 5160625.387)
+      134	In alley	POINT (690271.202 5160828.943)
+      135	None	POINT (690934.972 5161236.055)
+      136 rows × 2 columns
+
+patrolzones.plot()
+      <AxesSubplot:>
+
+graffitiIncid.plot()
+      <AxesSubplot:>
+
+#joining the two shape files
+newpoliceMerge = gpd.sjoin(graffitiIncid, patrolzones, how="inner", predicate="within")
+newpoliceMerge.head()
+      COMMENTS	geometry	index_right	INCIDENTS	PRIORITY	NAME	POPULATION	SHAPE_Leng	SHAPE_Area
+      0	None	POINT (690453.853 5166304.333)	0	0	None	North Central	6477	8777.033636	3880493.679
+      1	None	POINT (690402.500 5166098.921)	0	0	None	North Central	6477	8777.033636	3880493.679
+      2	Back wall of commercial business	POINT (690373.156 5165959.534)	0	0	None	North Central	6477	8777.033636	3880493.679
+      9	None	POINT (690611.580 5164983.828)	0	0	None	North Central	6477	8777.033636	3880493.679
+      11	None	POINT (690296.126 5164723.395)	0	0	None	North Central	6477	8777.033636	3880493.679
+#finding sum, sql mile, incidents
+    areaSum = newpoliceMerge.SHAPE_Area.agg(sum)
+    incidents = newpoliceMerge.INCIDENTS.count()
+    rate = incidents/(areaSum/2590000)
+#Creating the guidelines (Not sure how only top and low works and the middle guides do not)
+newpoliceMerge.loc[15<= rate, "PRIORITY"] = "TOP"
+newpoliceMerge.loc[15> rate <=12, "PRIORITY"] = "HIGH"
+newpoliceMerge.loc[12> rate <=6, "PRIORITY"] = "SOME"
+newpoliceMerge.loc[6> rate, "PRIORITY"] = "LOW"
+#Checking (not sure how I only managed to show 
+newpoliceMerge.head()
+      COMMENTS	geometry	index_right	INCIDENTS	PRIORITY	NAME	POPULATION	SHAPE_Leng	SHAPE_Area
+      0	None	POINT (690453.853 5166304.333)	0.0	0.0	TOP	North Central	6477.0	8777.033636	3880493.679
+      1	None	POINT (690402.500 5166098.921)	0.0	0.0	LOW	North Central	6477.0	8777.033636	3880493.679
+      2	Back wall of commercial business	POINT (690373.156 5165959.534)	0.0	0.0	None	North Central	6477.0	8777.033636	3880493.679
+      9	None	POINT (690611.580 5164983.828)	0.0	0.0	None	North Central	6477.0	8777.033636	3880493.679
+      11	None	POINT (690296.126 5164723.395)	0.0	0.0	None	North Central	6477.0	8777.033636	3880493.679
